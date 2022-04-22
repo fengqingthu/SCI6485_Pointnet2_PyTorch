@@ -84,6 +84,7 @@ if __name__ == '__main__':
         'pointnet2_cls_msg': pointnet2_cls_msg
     }
     parser = argparse.ArgumentParser()
+    parser.add_argument('--checkpoint', type = str, help='Pretrained model path to continue')
     parser.add_argument('--data_root', type=str, required=True, help='Root to the dataset')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
     parser.add_argument('--npoints', type=int, default=1024, help='Number of the training points')
@@ -120,6 +121,8 @@ if __name__ == '__main__':
     if ngpus > 1 and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model, device_ids=device_ids)
     model = model.to(device)
+    # load checkpoint
+    model.load_state_dict(torch.load(args.checkpoint))
 
     loss = cls_loss().to(device)
     #optimizer = torch.optim.SGD(model.parameters(), lr=args.init_lr, momentum=args.momentum)
