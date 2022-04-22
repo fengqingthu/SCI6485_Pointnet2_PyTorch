@@ -108,8 +108,8 @@ if __name__ == '__main__':
 
     modelnet40_train = ModelNet40(data_root=args.data_root, split='train', npoints=args.npoints, augment=args.augment, dp=args.dp)
     modelnet40_test = ModelNet40(data_root=args.data_root, split='test', npoints=args.npoints)
-    train_loader = DataLoader(dataset=modelnet40_train, batch_size=args.batch_size // ngpus, shuffle=True, num_workers=4)
-    test_loader = DataLoader(dataset=modelnet40_test, batch_size=args.batch_size // ngpus, shuffle=False, num_workers=4)
+    train_loader = DataLoader(dataset=modelnet40_train, batch_size=args.batch_size // ngpus, shuffle=True, num_workers=2)
+    test_loader = DataLoader(dataset=modelnet40_test, batch_size=args.batch_size // ngpus, shuffle=False, num_workers=2)
     print('Train set: {}'.format(len(modelnet40_train)))
     print('Test set: {}'.format(len(modelnet40_test)))
 
