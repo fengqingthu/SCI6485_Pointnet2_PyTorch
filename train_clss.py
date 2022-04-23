@@ -15,9 +15,8 @@ def train_one_epoch(train_loader, model, loss_func, optimizer, device):
     for data, labels in train_loader:
         optimizer.zero_grad()  # Important
         labels = labels.to(device)
-        xyz, points = data[:, :, :3], data[:, :, 3:]
-        pred = model(xyz.to(device))
-        # pred = model(xyz.to(device), points.to(device))
+        xyz, points = data[:, :, :3], torch.zeros_like(data[:, :, 3:]) # do not use normals
+        pred = model(xyz.to(device), points.to(device))
         loss = loss_func(pred, labels)
 
         loss.backward()
@@ -33,10 +32,9 @@ def test_one_epoch(test_loader, model, loss_func, device):
     losses, total_seen, total_correct = [], 0, 0
     for data, labels in test_loader:
         labels = labels.to(device)
-        xyz, points = data[:, :, :3], data[:, :, 3:]
+        xyz, points = data[:, :, :3], torch.zeros_like(data[:, :, 3:]) # do not use normals
         with torch.no_grad():
-            pred = model(xyz.to(device))
-            # pred = model(xyz.to(device), points.to(device))
+            pred = model(xyz.to(device), points.to(device))
             loss = loss_func(pred, labels)
 
             pred = torch.max(pred, dim=-1)[1]
@@ -117,14 +115,15 @@ if __name__ == '__main__':
     print('Test set: {}'.format(len(modelnet40_test)))
 
     Model = Models[args.model]
-    model = Model(3, args.nclasses) # do not use normals
+    model = Model(6, args.nclasses)
     # Mutli-gpus
     device = torch.device("cuda:{}".format(device_ids[0]) if torch.cuda.is_available() else "cpu")
     if ngpus > 1 and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model, device_ids=device_ids)
     model = model.to(device)
     # load checkpoint
-    model.load_state_dict(torch.load(args.checkpoint))
+    if args.checkpoint:
+        model.load_state_dict(torch.load(args.checkpoint))
 
     loss = cls_loss().to(device)
     #optimizer = torch.optim.SGD(model.parameters(), lr=args.init_lr, momentum=args.momentum)

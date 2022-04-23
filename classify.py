@@ -29,26 +29,31 @@ def classify(model_id, data_dir, checkpoint, npoints, dims=6, nclasses=40):
     
     data = []
     
+    order = []
+
     for file in os.listdir(data_dir):
         # skip non-obj files
         if not file.endswith(".txt"):
             continue
-        data.append(np.loadtxt(data_dir+'/'+file, delimiter=','))
+        order.append(file.split('_')[0])
+        xyz_points = np.loadtxt(data_dir+'/'+file, delimiter=',')
+        print(xyz_points.shape)
+        data.append(xyz_points)
     
-    data = torch.Tensor(data)
+    data = torch.Tensor(np.ndarray(data))
     test_loader = DataLoader(dataset=TensorDataset(data),
                              batch_size=1, shuffle=False,
                              num_workers=1)
     print('Constructing dataloader completed')
 
-    ct = 0
+    i = 0
     for data in tqdm(test_loader):
-        xyz = data[:, :, :3]
+        xyz, points = data[:, :, :3], torch.zeros_like(data[:, :, 3:]) # do not use normals
         with torch.no_grad():
-            pred = model(xyz.to(device))
+            pred = model(xyz.to(device), points.to(device))
             pred = torch.max(pred, dim=-1)[1]
-        print('{} pred: {}'.format(ct, pred))
-        ct += 1
+        print('Sample {} pred: {}'.format(order[i], pred))
+        i += 1
 
     # for file in os.listdir(data_dir):
     #         # skip non-obj files
