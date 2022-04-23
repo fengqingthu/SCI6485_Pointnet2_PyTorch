@@ -37,6 +37,16 @@ def classify(model_id, data_dir, checkpoint, npoints, dims=6, nclasses=40):
             continue
         order.append(file.split('_')[0])
         xyz_points = np.loadtxt(data_dir+'/'+file, delimiter=',')
+
+        if npoints > 0:
+            inds = np.random.randint(0, len(xyz_points), size=(npoints, ))
+        else:
+            inds = np.arange(len(xyz_points))
+            np.random.shuffle(inds)
+        xyz_points = xyz_points[inds, :]
+        # normalize
+        xyz_points[:, :3] = pc_normalize(xyz_points[:, :3])
+
         print(xyz_points.shape)
         data.append(xyz_points)
     
