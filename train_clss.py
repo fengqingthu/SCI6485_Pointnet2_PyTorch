@@ -16,7 +16,8 @@ def train_one_epoch(train_loader, model, loss_func, optimizer, device):
         optimizer.zero_grad()  # Important
         labels = labels.to(device)
         xyz, points = data[:, :, :3], data[:, :, 3:]
-        pred = model(xyz.to(device), points.to(device))
+        pred = model(xyz.to(device))
+        # pred = model(xyz.to(device), points.to(device))
         loss = loss_func(pred, labels)
 
         loss.backward()
@@ -34,7 +35,8 @@ def test_one_epoch(test_loader, model, loss_func, device):
         labels = labels.to(device)
         xyz, points = data[:, :, :3], data[:, :, 3:]
         with torch.no_grad():
-            pred = model(xyz.to(device), points.to(device))
+            pred = model(xyz.to(device))
+            # pred = model(xyz.to(device), points.to(device))
             loss = loss_func(pred, labels)
 
             pred = torch.max(pred, dim=-1)[1]
@@ -115,7 +117,7 @@ if __name__ == '__main__':
     print('Test set: {}'.format(len(modelnet40_test)))
 
     Model = Models[args.model]
-    model = Model(6, args.nclasses)
+    model = Model(3, args.nclasses) # do not use normals
     # Mutli-gpus
     device = torch.device("cuda:{}".format(device_ids[0]) if torch.cuda.is_available() else "cpu")
     if ngpus > 1 and torch.cuda.device_count() > 1:

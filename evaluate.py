@@ -11,7 +11,7 @@ from data.ShapeNet import ShapeNet
 from utils.IoU import cal_accuracy_iou
 
 
-def evaluate_cls(model_id, data_root, checkpoint, npoints, dims=6, nclasses=40):
+def evaluate_cls(model_id, data_root, checkpoint, npoints, dims=3, nclasses=40): # do not use normals
     print('Loading..')
     Models = {
         'pointnet2_cls_ssg': pointnet2_cls_ssg,
@@ -34,7 +34,8 @@ def evaluate_cls(model_id, data_root, checkpoint, npoints, dims=6, nclasses=40):
         labels = labels.to(device)
         xyz, points = data[:, :, :3], data[:, :, 3:]
         with torch.no_grad():
-            pred = model(xyz.to(device), points.to(device))
+            pred = model(xyz.to(device))
+            # pred = model(xyz.to(device), points.to(device))
             pred = torch.max(pred, dim=-1)[1]
             total_correct += torch.sum(pred == labels)
             total_seen += xyz.shape[0]

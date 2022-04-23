@@ -3,16 +3,17 @@ import numpy as np
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 from models.pointnet2_cls import pointnet2_cls_ssg, pointnet2_cls_msg
 from models.pointnet2_seg import pointnet2_seg_ssg
 from data.ModelNet40 import ModelNet40
 from data.ShapeNet import ShapeNet
 from utils.IoU import cal_accuracy_iou
 from data.provider import pc_normalize
+import os
 
 
-def classify(model_id, data_path, checkpoint, npoints, dims=6, nclasses=40):
+def classify(model_id, data_dir, checkpoint, npoints, dims=6, nclasses=40):
     print('Loading..')
     Models = {
         'pointnet2_cls_ssg': pointnet2_cls_ssg,
@@ -26,20 +27,50 @@ def classify(model_id, data_path, checkpoint, npoints, dims=6, nclasses=40):
     model.eval()
     print('Loading {} completed'.format(checkpoint))
     
-    xyz_points = np.loadtxt(data_path, delimiter=',')
-    if npoints > 0:
-        inds = np.random.randint(0, len(xyz_points), size=(npoints, ))
-    else:
-        inds = np.arange(len(xyz_points))
-        np.random.shuffle(inds)
-    xyz_points = xyz_points[inds, :]
-    # normalize
-    xyz_points[:, :3] = pc_normalize(xyz_points[:, :3])
-    xyz, points = xyz_points[:, :, :3], xyz_points[:, :, :3]
-    with torch.no_grad():
-        pred = model(xyz.to(device), points.to(device))
-        pred = torch.max(pred, dim=-1)[1]
-    print('Pred: {}'.format(pred))
+    data = []
+    
+    for file in os.listdir(data_dir):
+        # skip non-obj files
+        if not file.endswith(".txt"):
+            continue
+        data.append(np.loadtxt(data_dir+'/'+file, delimiter=','))
+    
+    data = torch.Tensor(data)
+    test_loader = DataLoader(dataset=TensorDataset(data),
+                             batch_size=1, shuffle=False,
+                             num_workers=1)
+    print('Constructing dataloader completed')
+
+    ct = 0
+    for data in tqdm(test_loader):
+        xyz = data[:, :, :3]
+        with torch.no_grad():
+            pred = model(xyz.to(device))
+            pred = torch.max(pred, dim=-1)[1]
+        print('{} pred: {}'.format(ct, pred))
+        ct += 1
+
+    # for file in os.listdir(data_dir):
+    #         # skip non-obj files
+    #         if not file.endswith(".txt"):
+    #             continue
+    #         xyz_points = np.loadtxt(file, delimiter=',')
+    #         if npoints > 0:
+    #             inds = np.random.randint(0, len(xyz_points), size=(npoints, ))
+    #         else:
+    #             inds = np.arange(len(xyz_points))
+    #             np.random.shuffle(inds)
+    #         xyz_points = xyz_points[inds, :]
+    #         # normalize
+    #         xyz_points[:, :3] = pc_normalize(xyz_points[:, :3])
+    #         xyz, points = xyz_points[:, :, :3], xyz_points[:, :, :3]
+    #         with torch.no_grad():
+    #             pred = model(xyz.to(device), points.to(device))
+    #             pred = torch.max(pred, dim=-1)[1]
+    #         print('{} pred: {}'.format(file, pred))
+
+
+    
 
     # total_correct, total_seen = 0, 0
     # for data, labels in tqdm(test_loader):
